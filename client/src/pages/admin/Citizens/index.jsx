@@ -12,6 +12,7 @@ import Table from '../../../components/ui/Table';
 import Button from '../../../components/ui/Button';
 import SearchFilter from '../../../components/ui/SearchFilter';
 import api from '../../../utils/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const ActionButton = ({ icon: Icon, onClick, label, variant = "ghost" }) => {
   const variants = {
@@ -34,6 +35,8 @@ const ActionButton = ({ icon: Icon, onClick, label, variant = "ghost" }) => {
 };
 
 const Citizens = () => {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
   const [citizenData, setCitizenData] = useState({ data: [], pagination: {} });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -166,24 +169,28 @@ const Citizens = () => {
                 variant="view"
               />
             </Link>
-            <Link to={`/admin/citizens/edit/${row.original.id}`}>
-              <ActionButton
-                icon={PencilSquareIcon}
-                label="Edit"
-                variant="edit"
-              />
-            </Link>
-            <ActionButton
-              icon={TrashIcon}
-              onClick={() => handleDelete(row.original)}
-              label="Hapus"
-              variant="danger"
-            />
+            {isSuperAdmin && (
+              <>
+                <Link to={`/admin/citizens/edit/${row.original.id}`}>
+                  <ActionButton
+                    icon={PencilSquareIcon}
+                    label="Edit"
+                    variant="edit"
+                  />
+                </Link>
+                <ActionButton
+                  icon={TrashIcon}
+                  onClick={() => handleDelete(row.original)}
+                  label="Hapus"
+                  variant="danger"
+                />
+              </>
+            )}
           </div>
         ),
       },
     ],
-    [currentPage, pageSize]
+    [currentPage, pageSize, isSuperAdmin]
   );
 
   const handlePageChange = (page) => {
@@ -211,20 +218,22 @@ const Citizens = () => {
       {/* Header with Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Data Penduduk</h1>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-          <Link to="/admin/citizens/import">
-            <Button variant="secondary" className="w-full sm:w-auto">
-              <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
-              Import Excel
-            </Button>
-          </Link>
-          <Link to="/admin/citizens/add">
-            <Button className="w-full sm:w-auto">
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Tambah Penduduk
-            </Button>
-          </Link>
-        </div>
+        {isSuperAdmin && (
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <Link to="/admin/citizens/import">
+              <Button variant="secondary" className="w-full sm:w-auto">
+                <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
+                Import Excel
+              </Button>
+            </Link>
+            <Link to="/admin/citizens/add">
+              <Button className="w-full sm:w-auto">
+                <PlusIcon className="h-5 w-5 mr-2" />
+                Tambah Penduduk
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Search Filter */}

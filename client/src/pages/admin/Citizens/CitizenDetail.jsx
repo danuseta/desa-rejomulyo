@@ -4,10 +4,13 @@ import { ArrowLeft, UserRound, FileEdit, FileText } from 'lucide-react';
 import Swal from 'sweetalert2';
 import CitizenForm from '../../../components/ui/CitizenForm';
 import api from '../../../utils/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const CitizenDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
   const [citizen, setCitizen] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -80,22 +83,24 @@ const CitizenDetail = () => {
             <p className="text-sm text-gray-500 mt-0.5">Informasi lengkap data penduduk</p>
           </div>
         </div>
-        {/* <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <button
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          {/* <button
             onClick={handleCreateLetter}
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors"
           >
             <FileText className="w-4 h-4 mr-2" />
             Buat Surat
-          </button>
-          <button
-            onClick={handleEdit}
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors"
-          >
-            <FileEdit className="w-4 h-4 mr-2" />
-            Edit Data
-          </button>
-        </div> */}
+          </button> */}
+          {isSuperAdmin && (
+            <button
+              onClick={handleEdit}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors"
+            >
+              <FileEdit className="w-4 h-4 mr-2" />
+              Edit Data
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -104,7 +109,7 @@ const CitizenDetail = () => {
           initialData={citizen}
           readOnly={true}
           showBackButton={false}
-          onEdit={handleEdit}
+          onEdit={isSuperAdmin ? handleEdit : undefined}
           onCreateLetter={handleCreateLetter}
         />
       </div>

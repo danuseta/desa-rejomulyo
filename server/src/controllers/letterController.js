@@ -9,34 +9,34 @@ const letterController = {
 
     // Tambahkan di letterController.js
     async downloadLetter(req, res) {
-        try {
+      try {
           const { id } = req.params;
           
           // Ambil data surat
           const letter = await Letter.findById(id);
           if (!letter) {
-            return res.status(404).json({ message: 'Surat tidak ditemukan' });
+              return res.status(404).json({ message: 'Surat tidak ditemukan' });
           }
       
           // Ambil data template dan citizen
           const template = await Template.findById(letter.template_id);
-          const citizen = await Citizen.findByNik(letter.nik);
+          const citizen = await Citizen.findByNIK(letter.nik); // Perhatikan penggunaan NIK bukan Nik
           const villageInfo = await VillageInfo.findOne();
       
           if (!template || !citizen || !villageInfo) {
-            return res.status(404).json({ 
-              message: 'Data template, penduduk, atau desa tidak ditemukan',
-              details: {
-                template: !template ? 'Template tidak ditemukan' : null,
-                citizen: !citizen ? 'Data penduduk tidak ditemukan' : null,
-                villageInfo: !villageInfo ? 'Data desa tidak ditemukan' : null
-              }
-            });
+              return res.status(404).json({ 
+                  message: 'Data template, penduduk, atau desa tidak ditemukan',
+                  details: {
+                      template: !template ? 'Template tidak ditemukan' : null,
+                      citizen: !citizen ? 'Data penduduk tidak ditemukan' : null,
+                      villageInfo: !villageInfo ? 'Data desa tidak ditemukan' : null
+                  }
+              });
           }
       
           // Validate template path exists
           if (!template.template_path) {
-            return res.status(400).json({ message: 'File template surat tidak ditemukan' });
+              return res.status(400).json({ message: 'File template surat tidak ditemukan' });
           }
       
           // Get parent's job jika diperlukan
@@ -48,21 +48,21 @@ const letterController = {
       
           // Set headers untuk download
           res.set({
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="surat_${template.name}_${citizen.nama}.pdf"`,
-            'Content-Length': pdfBuffer.length
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `attachment; filename="surat_${template.name}_${citizen.nama}.pdf"`,
+              'Content-Length': pdfBuffer.length
           });
       
           return res.send(pdfBuffer);
-        } catch (error) {
+      } catch (error) {
           console.error('Download letter error:', error);
           return res.status(500).json({ 
-            message: 'Gagal mengunduh surat',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+              message: 'Gagal mengunduh surat',
+              error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+              details: process.env.NODE_ENV === 'development' ? error.stack : undefined
           });
-        }
-      },
+      }
+  },
 
     async preview(req, res) {
         try {

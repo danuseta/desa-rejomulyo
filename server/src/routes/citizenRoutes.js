@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const citizenController = require('../controllers/citizenController');
-const { authMiddleware } = require('../middlewares/authMiddleware');
+const { authenticateToken, authorizeRole } = require('../middlewares/authMiddleware');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -27,23 +27,21 @@ const upload = multer({
 });
 
 // Penting: route /search harus di atas route /:id
-router.get('/search', citizenController.searchCitizens);
+router.get('/search', authenticateToken, citizenController.searchCitizens);
 
-// Basic CRUD routes
-router.get('/', citizenController.getCitizens);
-router.get('/statistics', citizenController.getStatistics);
-router.get('/total-families', citizenController.getTotalFamilies);
-router.get('/kk/:noKK', citizenController.getCitizensByKK);
-router.get('/template', citizenController.downloadTemplate);
-router.get('/:id', citizenController.getCitizenById);
+// Basic CRUD routes dengan role checking
+router.get('/', authenticateToken, citizenController.getCitizens);
+router.get('/statistics', authenticateToken, citizenController.getStatistics);
+router.get('/total-families', authenticateToken, citizenController.getTotalFamilies);
+router.get('/kk/:noKK', authenticateToken, citizenController.getCitizensByKK);
+router.get('/template', authenticateToken, citizenController.downloadTemplate);
+router.get('/:id', authenticateToken, citizenController.getCitizenById);
+router.get('/warning/data', authenticateToken, citizenController.getWarningData);
 
-router.post('/', citizenController.createCitizen);
-router.post('/import', upload.single('file'), citizenController.importCitizens);
-
-router.put('/:id', citizenController.updateCitizen);
-router.delete('/:id', citizenController.deleteCitizen);
-
-// Tambahkan route baru
-router.get('/warning/data', citizenController.getWarningData);
+// Routes yang membutuhkan role super_admin
+router.post('/', authenticateToken, authorizeRole(['super_admin']), citizenController.createCitizen);
+router.post('/import', authenticateToken, authorizeRole(['super_admin']), upload.single('file'), citizenController.importCitizens);
+router.put('/:id', authenticateToken, authorizeRole(['super_admin']), citizenController.updateCitizen);
+router.delete('/:id', authenticateToken, authorizeRole(['super_admin']), citizenController.deleteCitizen);
 
 module.exports = router;

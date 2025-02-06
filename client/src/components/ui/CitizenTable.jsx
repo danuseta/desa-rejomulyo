@@ -1,10 +1,13 @@
- 
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Table from './Table';
 import Button from './Button';
+import { useAuth } from '../../context/AuthContext';
 
 const CitizenTable = ({ data, onDelete }) => {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
+
   const columns = React.useMemo(
     () => [
       {
@@ -57,23 +60,27 @@ const CitizenTable = ({ data, onDelete }) => {
                 Detail
               </Button>
             </Link>
-            <Link to={`/admin/citizens/edit/${row.original.id}`}>
-              <Button size="sm">
-                Edit
-              </Button>
-            </Link>
-            <Button
-              size="sm"
-              variant="danger"
-              onClick={() => onDelete(row.original.id)}
-            >
-              Delete
-            </Button>
+            {isSuperAdmin && (
+              <>
+                <Link to={`/admin/citizens/edit/${row.original.id}`}>
+                  <Button size="sm">
+                    Edit
+                  </Button>
+                </Link>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => onDelete(row.original.id)}
+                >
+                  Delete
+                </Button>
+              </>
+            )}
           </div>
         ),
       },
     ],
-    [onDelete]
+    [onDelete, isSuperAdmin]
   );
 
   return <Table columns={columns} data={data} />;

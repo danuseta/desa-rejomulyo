@@ -1,20 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Lock, Save } from 'lucide-react';
+import { ArrowLeft, User, Lock, Save, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Swal from 'sweetalert2';
 import Button from '../../components/ui/Button';
 import api from '../../utils/api';
 
-const Input = ({ label, error, ...props }) => (
+const Input = ({ label, error, type = "text", showPassword, onTogglePassword, ...props }) => (
   <div className="space-y-1">
     <label className="block text-sm font-medium text-gray-700">
       {label}
     </label>
-    <input
-      {...props}
-      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
-    />
+    <div className="relative">
+      <input
+        type={type === "password" && showPassword ? "text" : type}
+        {...props}
+        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+      />
+      {type === "password" && (
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+        >
+          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      )}
+    </div>
     {error && <p className="text-sm text-red-500">{error}</p>}
   </div>
 );
@@ -26,6 +38,11 @@ const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [errors, setErrors] = useState({});
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
   
   const [formData, setFormData] = useState({
     username: '',
@@ -62,22 +79,25 @@ const Settings = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.username) {
-      newErrors.username = 'Username harus diisi';
-    }
-    
-    if (!formData.full_name) {
-      newErrors.full_name = 'Nama lengkap harus diisi';
-    }
-    
-    if (formData.new_password) {
+    if (activeTab === 'profile') {
+      if (!formData.username) {
+        newErrors.username = 'Username harus diisi';
+      }
+      if (!formData.full_name) {
+        newErrors.full_name = 'Nama lengkap harus diisi';
+      }
+    } else {
       if (!formData.current_password) {
         newErrors.current_password = 'Password saat ini harus diisi';
       }
-      if (formData.new_password.length < 6) {
+      if (!formData.new_password) {
+        newErrors.new_password = 'Password baru harus diisi';
+      } else if (formData.new_password.length < 6) {
         newErrors.new_password = 'Password minimal 6 karakter';
       }
-      if (formData.new_password !== formData.confirm_password) {
+      if (!formData.confirm_password) {
+        newErrors.confirm_password = 'Konfirmasi password harus diisi';
+      } else if (formData.new_password !== formData.confirm_password) {
         newErrors.confirm_password = 'Password tidak cocok';
       }
     }
@@ -105,36 +125,49 @@ const Settings = () => {
     if (result.isConfirmed) {
       setLoading(true);
       try {
-        const userData = {
-          username: formData.username,
-          full_name: formData.full_name
-        };
-
-        if (formData.new_password) {
-          userData.current_password = formData.current_password;
-          userData.new_password = formData.new_password;
+        let response;
+        
+        if (activeTab === 'profile') {
+          response = await api.put('/auth/profile', {
+            username: formData.username,
+            full_name: formData.full_name
+          });
+          
+          setUser({
+            ...user,
+            username: response.data.username,
+            full_name: response.data.full_name
+          });
+        } else {
+          response = await api.put('/auth/password', {
+            current_password: formData.current_password,
+            new_password: formData.new_password
+          });
         }
-
-        const response = await api.put('/auth/profile', userData);
-        setUser({
-          username: userData.username,
-          full_name: userData.full_name,
-          role: user.role
-        });
 
         await Swal.fire({
           icon: 'success',
           title: 'Berhasil',
-          text: 'Profil berhasil diperbarui'
+          text: activeTab === 'profile' ? 'Profil berhasil diperbarui' : 'Password berhasil diperbarui'
         });
         
-        navigate('/admin/dashboard');
+        if (activeTab === 'security') {
+          // Reset password fields after successful update
+          setFormData(prev => ({
+            ...prev,
+            current_password: '',
+            new_password: '',
+            confirm_password: ''
+          }));
+        } else {
+          navigate('/admin/dashboard');
+        }
       } catch (error) {
-        console.error('Error updating profile:', error);
+        console.error('Error updating:', error);
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: error.response?.data?.message || error.message || 'Gagal memperbarui profil'
+          text: error.response?.data?.message || error.message || 'Gagal memperbarui data'
         });
       } finally {
         setLoading(false);
@@ -155,6 +188,13 @@ const Settings = () => {
         [name]: ''
       }));
     }
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
   };
 
   if (fetchLoading) {
@@ -259,6 +299,8 @@ const Settings = () => {
                   onChange={handleInputChange}
                   error={errors.current_password}
                   placeholder="Masukkan password saat ini"
+                  showPassword={showPasswords.current}
+                  onTogglePassword={() => togglePasswordVisibility('current')}
                 />
                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Input
@@ -269,6 +311,8 @@ const Settings = () => {
                     onChange={handleInputChange}
                     error={errors.new_password}
                     placeholder="Masukkan password baru"
+                    showPassword={showPasswords.new}
+                    onTogglePassword={() => togglePasswordVisibility('new')}
                   />
                   <Input
                     label="Konfirmasi Password Baru"
@@ -278,6 +322,8 @@ const Settings = () => {
                     onChange={handleInputChange}
                     error={errors.confirm_password}
                     placeholder="Konfirmasi password baru"
+                    showPassword={showPasswords.confirm}
+                    onTogglePassword={() => togglePasswordVisibility('confirm')}
                   />
                 </div>
               </div>
